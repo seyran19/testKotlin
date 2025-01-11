@@ -43,17 +43,17 @@ object BudgetService {
 
             val total = baseQuery.count()
 
-            val query = baseQuery
+            val paginatedQuery = baseQuery
                 .orderBy(BudgetTable.month to SortOrder.ASC, BudgetTable.amount to SortOrder.DESC)
-                .limit(param.limit, param.offset)
+                .limit(param.limit.coerceAtLeast(0), param.offset.coerceAtLeast(0))
 
-            val allData = baseQuery
+            val data = BudgetEntity.wrapRows(paginatedQuery).map { it.toResponse() }
 
-            val sumByType = allData
-                .groupBy { it[BudgetTable.type].name }
-                .mapValues { entry -> entry.value.sumOf { it[BudgetTable.amount] } }
-
-            val data = BudgetEntity.wrapRows(query).map { it.toResponse() }
+            val sumByType = BudgetTable
+                .slice(BudgetTable.type, BudgetTable.amount.sum())
+                .select { BudgetTable.year eq param.year }
+                .groupBy(BudgetTable.type)
+                .associate { it[BudgetTable.type].name to (it[BudgetTable.amount.sum()] ?: 0) }
 
             return@transaction BudgetYearStatsResponse(
                 total = total,
