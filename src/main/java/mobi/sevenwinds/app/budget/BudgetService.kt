@@ -1,5 +1,6 @@
 package mobi.sevenwinds.app.budget
 
+import javassist.NotFoundException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import mobi.sevenwinds.app.author.Author
@@ -12,8 +13,8 @@ object BudgetService {
     suspend fun addRecord(body: BudgetRecord): BudgetResponse = withContext(Dispatchers.IO) {
         transaction {
 
-            val authorEntity = body.authorId?.let {
-                AuthorEntity.findById(it)
+            val authorEntity = body.authorId?.let { authorId ->
+                AuthorEntity.findById(authorId) ?: throw NotFoundException("Author with id $authorId not found")
             }
 
             val entity = BudgetEntity.new {
